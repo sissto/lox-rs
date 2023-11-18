@@ -32,64 +32,64 @@ impl<'a> Scanner<'a> {
     fn scan_token(&mut self) {
         let char = self.advance();
         match char {
-            "(" => self.add_token(TokenType::LeftParen),
-            ")" => self.add_token(TokenType::RightParen),
-            "{" => self.add_token(TokenType::LeftBrace),
-            "}" => self.add_token(TokenType::RightBrace),
-            "," => self.add_token(TokenType::Comma),
-            "." => self.add_token(TokenType::Dot),
-            "-" => self.add_token(TokenType::Minus),
-            "+" => self.add_token(TokenType::Plus),
-            ";" => self.add_token(TokenType::Semicolon),
-            "*" => self.add_token(TokenType::Star),
-            "!" => {
-                if self.matches("=") {
+            '(' => self.add_token(TokenType::LeftParen),
+            ')' => self.add_token(TokenType::RightParen),
+            '{' => self.add_token(TokenType::LeftBrace),
+            '}' => self.add_token(TokenType::RightBrace),
+            ',' => self.add_token(TokenType::Comma),
+            '.' => self.add_token(TokenType::Dot),
+            '-' => self.add_token(TokenType::Minus),
+            '+' => self.add_token(TokenType::Plus),
+            ';' => self.add_token(TokenType::Semicolon),
+            '*' => self.add_token(TokenType::Star),
+            '!' => {
+                if self.matches('=') {
                     self.add_token(TokenType::BangEqual)
                 } else {
                     self.add_token(TokenType::Bang);
                 }
             }
-            "=" => {
-                if self.matches("=") {
+            '=' => {
+                if self.matches('=') {
                     self.add_token(TokenType::EqualEqual)
                 } else {
                     self.add_token(TokenType::Equal);
                 }
             }
-            "<" => {
-                if self.matches("=") {
+            '<' => {
+                if self.matches('=') {
                     self.add_token(TokenType::LessEqual)
                 } else {
                     self.add_token(TokenType::Less);
                 }
             }
-            ">" => {
-                if self.matches("=") {
+            '>' => {
+                if self.matches('=') {
                     self.add_token(TokenType::GreaterEqual)
                 } else {
                     self.add_token(TokenType::Greater);
                 }
             }
-            "/" => {
-                if self.matches("/") {
+            '/' => {
+                if self.matches('/') {
                     // A comment goes until the end of the line
-                    while self.peek() != "\n" && !self.is_at_end() {
+                    while self.peek() != '\n' && !self.is_at_end() {
                         self.advance();
                     }
                 } else {
                     self.add_token(TokenType::Slash);
                 }
             }
-            " " | "\r" | "\t" => {} // Ignore whitespace
-            "\n" => self.line += 1,
-            "\"" => self.scan_string_literal(),
+            ' ' | '\r' | '\t' => {} // Ignore whitespace
+            '\n' => self.line += 1,
+            '"' => self.scan_string_literal(),
             _ => super::error(self.line, "Unexpected character.").unwrap(),
         }
     }
 
     fn scan_string_literal(&mut self) {
-        while self.peek() != "\"" && !self.is_at_end() {
-            if self.peek() == "\n" {
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' {
                 self.line += 1;
             }
             self.advance();
@@ -113,27 +113,49 @@ impl<'a> Scanner<'a> {
         self.tokens.push(Token::new(token_type, text, self.line));
     }
 
-    fn advance(&mut self) -> &str {
-        let char = &self.source[self.current..self.current + 1];
+    fn advance(&mut self) -> char {
+        let chars = self.source[self.current..self.current + 1]
+            .chars()
+            .collect::<Vec<char>>();
+
         self.current += 1;
-        char
+        match chars.first() {
+            None => '\0',
+            Some(value) => *value,
+        }
     }
 
-    fn peek(&self) -> &str {
+    fn peek(&self) -> char {
         if self.is_at_end() {
-            return "\0";
+            return '\0';
         }
-        &self.source[self.current..self.current + 1]
+        let chars = self.source[self.current..self.current + 1]
+            .chars()
+            .collect::<Vec<char>>();
+
+        match chars.first() {
+            None => '\0',
+            Some(value) => *value,
+        }
     }
 
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
     }
 
-    fn matches(&mut self, expected: &str) -> bool {
-        if self.is_at_end() || &self.source[self.current..self.current + 1] != expected {
+    fn matches(&mut self, expected: char) -> bool {
+        if self.is_at_end() {
             return false;
         }
+
+        let chars = self.source[self.current..self.current + 1]
+            .chars()
+            .collect::<Vec<char>>();
+
+        if chars.first().is_some_and(|c| *c != expected) {
+            return false;
+        }
+
         self.current += 1;
         true
     }
@@ -150,7 +172,7 @@ mod tests {
         let mut scanner = Scanner::new(test_value);
         while !scanner.is_at_end() {
             let char = scanner.advance();
-            result += char;
+            result.push(char);
         }
         assert_eq!(test_value, &result);
     }
