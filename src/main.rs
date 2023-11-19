@@ -1,23 +1,24 @@
 use crate::scanner::Scanner;
 use std::error::Error;
 use std::fs;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::sync::OnceLock;
 
 mod scanner;
 mod token;
+mod utils;
 
 static HAD_ERROR: OnceLock<bool> = OnceLock::new();
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = std::env::args().collect();
-    if args.len() > 2 {
-        println!("Usage lox-rs [script]");
-        std::process::exit(64);
-    } else if args.len() == 2 {
-        Lox::default().run_file(&args[1])?;
-    } else {
-        Lox::default().run_prompt()?;
+    match args.len() {
+        2 => Lox::default().run_file(&args[1])?,
+        3.. => {
+            println!("Usage lox-rs [script]");
+            std::process::exit(64);
+        }
+        _ => Lox::default().run_prompt()?
     }
     Ok(())
 }

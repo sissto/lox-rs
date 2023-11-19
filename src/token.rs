@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter, Pointer};
+use std::fmt::{Display, Formatter};
 
 pub struct Token {
     pub token_type: TokenType,
@@ -22,6 +22,8 @@ impl Display for Token {
     }
 }
 
+#[derive(Debug, Clone)]
+#[derive(PartialEq)]
 pub enum TokenType {
     // Single-character tokens
     LeftParen,

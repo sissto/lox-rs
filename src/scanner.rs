@@ -1,4 +1,33 @@
+use std::collections::HashMap;
+use std::sync::OnceLock;
 use crate::token::{Token, TokenType};
+use crate::utils;
+
+static KEYWORDS: OnceLock<HashMap<&str, TokenType>> = OnceLock::new();
+
+fn get_keyword_token(literal: &str) -> Option<&TokenType> {
+    let keywords = KEYWORDS.get_or_init(|| {
+        let mut map = HashMap::new();
+        map.insert("and", TokenType::And);
+        map.insert("class", TokenType::Class);
+        map.insert("else", TokenType::Else);
+        map.insert("false", TokenType::False);
+        map.insert("for", TokenType::For);
+        map.insert("fun", TokenType::Fun);
+        map.insert("if", TokenType::If);
+        map.insert("nil", TokenType::Nil);
+        map.insert("or", TokenType::Or);
+        map.insert("print", TokenType::Print);
+        map.insert("return", TokenType::Return);
+        map.insert("super", TokenType::Super);
+        map.insert("this", TokenType::This);
+        map.insert("true", TokenType::True);
+        map.insert("var", TokenType::Var);
+        map.insert("while", TokenType::While);
+        map
+    });
+    keywords.get(literal)
+}
 
 pub struct Scanner<'a> {
     source: &'a str,
@@ -86,10 +115,25 @@ impl<'a> Scanner<'a> {
             _ => {
                 if char.is_numeric() {
                     self.scan_number_literal();
-                } else {
+                } else if utils::is_alpha(char) {
+                    self.scan_identifier();
+                }
+                else {
                     super::error(self.line, "Unexpected character.").unwrap()
                 };
             }
+        }
+    }
+
+    fn scan_identifier(&mut self) {
+        while utils::is_alphanumeric(self.peek())  {
+            self.advance();
+        }
+
+        let value = &self.source[self.start..self.current];
+        match get_keyword_token(value) {
+            None => self.add_token(TokenType::Identifier(value.to_string())),
+            Some(token_type) => self.add_token(token_type.clone())
         }
     }
 
@@ -232,9 +276,9 @@ mod tests {
         let token = tokens.get(0);
         if let Some(t) = token {
             if let TokenType::String(value) = &t.token_type {
-                assert_eq!(&test_value.replace("\"", ""), value);
+                assert_eq!(&test_value.replace('"', ""), value);
             } else {
-                assert!(false, "wrong token type");
+                panic!("wrong token type")
             }
         }
     }
@@ -256,8 +300,25 @@ mod tests {
             if let TokenType::Number(value) = &t.token_type {
                 assert_eq!(test_value, *value);
             } else {
-                assert!(false, "wrong token type");
+                panic!("wrong token type")
             }
+        }
+    }
+
+    #[test]
+    fn test_scan_identifier() {
+        let test_value = "class";
+        let mut scanner = Scanner::new(test_value);
+        let tokens = scanner.scan_tokens();
+        assert_eq!(
+            2,
+            tokens.len(),
+            "there should be one number and one EOF token"
+        );
+
+        let token = tokens.get(0);
+        if let Some(t) = token {
+            assert_eq!(TokenType::Class, t.token_type);
         }
     }
 }
