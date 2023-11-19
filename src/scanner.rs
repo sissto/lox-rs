@@ -83,8 +83,34 @@ impl<'a> Scanner<'a> {
             ' ' | '\r' | '\t' => {} // Ignore whitespace
             '\n' => self.line += 1,
             '"' => self.scan_string_literal(),
-            _ => super::error(self.line, "Unexpected character.").unwrap(),
+            _ => {
+                if char.is_numeric() {
+                    self.scan_number_literal();
+                } else {
+                    super::error(self.line, "Unexpected character.").unwrap()
+                };
+            }
         }
+    }
+
+    fn scan_number_literal(&mut self) {
+        while self.peek().is_numeric() {
+            self.advance();
+        }
+
+        // Look for fractional part
+        if self.peek() == '.' && self.peek_next().is_numeric() {
+            // Consume the "."
+            self.advance();
+
+            while self.peek().is_numeric() {
+                self.advance();
+            }
+        }
+
+        let str_value = &self.source[self.start..self.current];
+        let num_value: f64 = str_value.parse().unwrap();
+        self.add_token(TokenType::Number(num_value));
     }
 
     fn scan_string_literal(&mut self) {
@@ -130,6 +156,21 @@ impl<'a> Scanner<'a> {
             return '\0';
         }
         let chars = self.source[self.current..self.current + 1]
+            .chars()
+            .collect::<Vec<char>>();
+
+        match chars.first() {
+            None => '\0',
+            Some(value) => *value,
+        }
+    }
+
+    fn peek_next(&self) -> char {
+        if self.current + 1 >= self.source.len() {
+            return '\0';
+        }
+
+        let chars = self.source[self.current + 1..self.current + 2]
             .chars()
             .collect::<Vec<char>>();
 
@@ -192,6 +233,30 @@ mod tests {
         if let Some(t) = token {
             if let TokenType::String(value) = &t.token_type {
                 assert_eq!(&test_value.replace("\"", ""), value);
+            } else {
+                assert!(false, "wrong token type");
+            }
+        }
+    }
+
+    #[test]
+    fn test_scan_number() {
+        let test_value = 12.34;
+        let test_value_str = &test_value.to_string();
+        let mut scanner = Scanner::new(test_value_str);
+        let tokens = scanner.scan_tokens();
+        assert_eq!(
+            2,
+            tokens.len(),
+            "there should be one number and one EOF token"
+        );
+
+        let token = tokens.get(0);
+        if let Some(t) = token {
+            if let TokenType::Number(value) = &t.token_type {
+                assert_eq!(test_value, *value);
+            } else {
+                assert!(false, "wrong token type");
             }
         }
     }

@@ -49,7 +49,7 @@ pub enum TokenType {
     // Literals
     Identifier(String),
     String(String),
-    Number(String),
+    Number(f64),
 
     // Keywords
     And,
@@ -96,7 +96,7 @@ impl Display for TokenType {
             TokenType::LessEqual => f.write_str("<="),
             TokenType::Identifier(id) => f.write_str(id),
             TokenType::String(str) => f.write_str(str),
-            TokenType::Number(num) => f.write_str(num),
+            TokenType::Number(num) => f.write_str(&num.to_string()),
             TokenType::And => f.write_str("and"),
             TokenType::Class => f.write_str("class"),
             TokenType::Else => f.write_str("else"),
